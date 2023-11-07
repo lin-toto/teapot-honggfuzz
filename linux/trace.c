@@ -370,7 +370,7 @@ static struct {
     [SIGFPE].important = true,
     [SIGFPE].descr     = "SIGFPE",
 
-    [SIGSEGV].important = true,
+    [SIGSEGV].important = false,
     [SIGSEGV].descr     = "SIGSEGV",
 
     [SIGBUS].important = true,
@@ -386,6 +386,9 @@ static struct {
     /* seccomp-bpf kill */
     [SIGSYS].important = true,
     [SIGSYS].descr     = "SIGSYS",
+
+    [SIGUSR1].important = true,
+    [SIGUSR1].descr = "SIGUSR1"
 };
 
 #if defined(__clang__)
