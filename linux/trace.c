@@ -128,6 +128,12 @@ struct user_regs_64 {
     uint64_t gs;
 };
 
+typedef struct NaHCO3_gadget_desc {
+    uint64_t gadget_addr, access_addr, ckpt_addr;
+
+    uint64_t gadget_type;
+} NaHCO3_gadget_desc_t;
+
 union user_regs_t {
     struct user_regs_32 regs32;
     struct user_regs_64 regs64;
@@ -373,7 +379,7 @@ static struct {
     [SIGSEGV].important = false,
     [SIGSEGV].descr     = "SIGSEGV",
 
-    [SIGBUS].important = true,
+    [SIGBUS].important = false,
     [SIGBUS].descr     = "SIGBUS",
 
     [SIGABRT].important = true,
@@ -662,6 +668,20 @@ static void arch_traceSaveData(run_t* run, pid_t pid) {
     if (!pcRegSz) {
         LOG_W("ptrace arch_getPC failed");
         return;
+    }
+
+    /* NaHCO3: induced signal for a gadget */
+    if (si.si_signo == SIGUSR1) {
+        void *gadget_addr = si.si_value.sival_ptr;
+        NaHCO3_gadget_desc_t gadget;
+        if (arch_getProcMem(pid, (uint8_t*)&gadget, sizeof(gadget), (uint64_t)gadget_addr) == 0) {
+            LOG_W("ptrace arch_getProcMem failed when reading gadget data");
+        }
+        PLOG_D("New gadget: Type=%lu, Addr=0x%lx, AccessAddr=%lx, CkptAddr=%lx",
+            gadget.gadget_type, gadget.gadget_addr, gadget.access_addr, gadget.ckpt_addr);
+
+        pc = gadget.gadget_addr;
+        crashAddr = gadget.access_addr;
     }
 
     /*
