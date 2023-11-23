@@ -261,11 +261,27 @@ static void* signalThread(void* arg) {
     return NULL;
 }
 
+static void dumpCoverage(honggfuzz_t* hfuzz) {
+    uint64_t softCntPc   = ATOMIC_GET(hfuzz->feedback.hwCnts.softCntPc);
+    uint64_t softCntEdge = ATOMIC_GET(hfuzz->feedback.hwCnts.softCntEdge);
+    uint64_t softCntCmp  = ATOMIC_GET(hfuzz->feedback.hwCnts.softCntCmp);
+    uint64_t guardNb     = ATOMIC_GET(hfuzz->feedback.covFeedbackMap->guardNb);
+
+    LOG_I("==== Begin Coverage Report ====");
+    LOG_I("time: %ld", time(NULL));
+    LOG_I("edge: %lu/%lu [%.2lf%%]", softCntEdge, guardNb, guardNb ? ((softCntEdge * 100.0) / guardNb) : 0);
+    LOG_I("pc: %" PRIu64, softCntPc);
+    LOG_I("cmp: %" PRIu64, softCntCmp);
+    LOG_I("==== End Coverage Report ====");
+}
+
 static uint8_t mainThreadLoop(honggfuzz_t* hfuzz) {
     setupSignalsMainThread();
     setupMainThreadTimer();
 
-    for (;;) {
+
+    for (time_t lastCoverageDumpTime = time(NULL); ;) {
+        time_t timeNow = time(NULL);
         if (hfuzz->io.dynamicInputDir) {
             LOG_D("Loading files from the dynamic input queue...");
             input_enqueueDynamicInputs(hfuzz);
@@ -285,19 +301,25 @@ static uint8_t mainThreadLoop(honggfuzz_t* hfuzz) {
         if (ATOMIC_GET(hfuzz->threads.threadsFinished) >= hfuzz->threads.threadsMax) {
             break;
         }
-        if (hfuzz->timing.runEndTime > 0 && (time(NULL) > hfuzz->timing.runEndTime)) {
+        if (hfuzz->timing.runEndTime > 0 && (timeNow > hfuzz->timing.runEndTime)) {
             LOG_I("Maximum run time reached, terminating");
             break;
         }
         if (hfuzz->timing.exitOnTime > 0 &&
-            time(NULL) - ATOMIC_GET(hfuzz->timing.lastCovUpdate) > hfuzz->timing.exitOnTime) {
+            timeNow - ATOMIC_GET(hfuzz->timing.lastCovUpdate) > hfuzz->timing.exitOnTime) {
             LOG_I("No new coverage was found for the last %ld seconds, terminating",
                 hfuzz->timing.exitOnTime);
             break;
         }
+        if (hfuzz->cfg.covReportTimer && timeNow - lastCoverageDumpTime > hfuzz->cfg.covReportTimer) {
+            lastCoverageDumpTime = timeNow;
+            dumpCoverage(hfuzz);
+        }
         pingThreads(hfuzz);
         pause();
     }
+
+    dumpCoverage(hfuzz);
 
     fuzz_setTerminating();
 

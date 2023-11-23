@@ -384,6 +384,7 @@ bool cmdlineParse(int argc, char* argv[], honggfuzz_t* hfuzz) {
                 .only_printable    = false,
                 .minimize          = false,
                 .switchingToFDM    = false,
+                .covReportTimer    = 0,
             },
         .sanitizer =
             {
@@ -455,6 +456,7 @@ bool cmdlineParse(int argc, char* argv[], honggfuzz_t* hfuzz) {
                 .useNetNs             = HF_NO,
                 .kernelOnly           = false,
                 .useClone             = true,
+                .usePtrace            = true,
             },
         /* NetBSD code */
         .arch_netbsd =
@@ -530,6 +532,7 @@ bool cmdlineParse(int argc, char* argv[], honggfuzz_t* hfuzz) {
         { { "pin_thread_cpu", required_argument, NULL, 0x114 }, "Pin a single execution thread to this many consecutive CPUs (default: 0 = no CPU pinning)" },
         { { "dynamic_input", required_argument, NULL, 0x115 }, "Path to a directory containing the dynamic file corpus" },
         { { "statsfile", required_argument, NULL, 0x116 }, "Stats file" },
+        { { "cov_report_timer", required_argument, NULL, 0x9002 }, "Coverage Report Timer" },
 
 #if defined(_HF_ARCH_LINUX)
         { { "linux_symbols_bl", required_argument, NULL, 0x504 }, "Symbols blocklist filter file (one entry per line)" },
@@ -546,6 +549,8 @@ bool cmdlineParse(int argc, char* argv[], honggfuzz_t* hfuzz) {
         { { "linux_ns_net", required_argument, NULL, 0x0530 }, "Use Linux NET namespace isolation (yes/no/maybe [default:no])" },
         { { "linux_ns_pid", no_argument, NULL, 0x0531 }, "Use Linux PID namespace isolation" },
         { { "linux_ns_ipc", no_argument, NULL, 0x0532 }, "Use Linux IPC namespace isolation" },
+        { { "linux_no_ptrace", no_argument, NULL, 0x9001 }, "Disable Linux ptrace" },
+
 #endif // defined(_HF_ARCH_LINUX)
 
 #if defined(_HF_ARCH_NETBSD)
@@ -756,6 +761,9 @@ bool cmdlineParse(int argc, char* argv[], honggfuzz_t* hfuzz) {
         case 'B':
             hfuzz->feedback.blocklistFile = optarg;
             break;
+        case 0x9002:
+            hfuzz->cfg.covReportTimer = atoi(optarg);
+            break;
 #if defined(_HF_ARCH_LINUX)
         case 0x500:
             hfuzz->arch_linux.ignoreAddr = (void*)strtoul(optarg, NULL, 0);
@@ -798,6 +806,9 @@ bool cmdlineParse(int argc, char* argv[], honggfuzz_t* hfuzz) {
             break;
         case 0x532:
             hfuzz->arch_linux.cloneFlags |= (CLONE_NEWUSER | CLONE_NEWIPC);
+            break;
+        case 0x9001:
+            hfuzz->arch_linux.usePtrace = false;
             break;
 #endif /* defined(_HF_ARCH_LINUX) */
 #if defined(_HF_ARCH_NETBSD)

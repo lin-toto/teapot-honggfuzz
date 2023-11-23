@@ -275,6 +275,7 @@ typedef struct {
         bool        only_printable;
         bool        minimize;
         bool        switchingToFDM;
+        uint32_t    covReportTimer;
     } cfg;
     struct {
         bool enable;
@@ -333,6 +334,7 @@ typedef struct {
         tristate_t  useNetNs;
         bool        kernelOnly;
         bool        useClone;
+        bool        usePtrace;
     } arch_linux;
     /* For the NetBSD code */
     struct {

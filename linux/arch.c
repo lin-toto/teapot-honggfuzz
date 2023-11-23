@@ -155,9 +155,11 @@ bool arch_launchChild(run_t* run) {
     /* Alarms persist across execve(), so disable them here */
     alarm(0);
 
-    /* Wait for the ptrace to attach now */
-    if (kill(syscall(__NR_getpid), SIGSTOP) == -1) {
-        LOG_F("Couldn't stop itself");
+    if (run->global->arch_linux.usePtrace) {
+        /* Wait for the ptrace to attach now */
+        if (kill(syscall(__NR_getpid), SIGSTOP) == -1) {
+            LOG_F("Couldn't stop itself");
+        }
     }
 #if defined(__NR_execveat)
     syscall(__NR_execveat, run->global->arch_linux.exeFd, "", run->args, environ, AT_EMPTY_PATH);
@@ -200,8 +202,11 @@ void arch_prepareParentAfterFork(run_t* run) {
     if (!arch_perfOpen(run)) {
         LOG_F("Couldn't open perf event for pid=%d", (int)run->pid);
     }
-    if (!arch_attachToNewPid(run)) {
-        LOG_F("Couldn't attach to pid=%d", (int)run->pid);
+
+    if (run->global->arch_linux.usePtrace) {
+        if (!arch_attachToNewPid(run)) {
+            LOG_F("Couldn't attach to pid=%d", (int)run->pid);
+        }
     }
 }
 
