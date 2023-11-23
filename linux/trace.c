@@ -663,6 +663,7 @@ static void arch_traceSaveData(run_t* run, pid_t pid) {
 
     int      open_flags = O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC;
     uint64_t pc         = 0;
+    uint64_t ckpt_addr  = 0;
     uint64_t status_reg = 0;
     size_t   pcRegSz    = arch_getPC(pid, &pc, &status_reg);
     if (!pcRegSz) {
@@ -682,6 +683,7 @@ static void arch_traceSaveData(run_t* run, pid_t pid) {
 
         pc = gadget.gadget_addr;
         crashAddr = gadget.access_addr;
+        ckpt_addr = gadget.ckpt_addr;
     }
 
     /*
@@ -818,15 +820,14 @@ static void arch_traceSaveData(run_t* run, pid_t pid) {
             run->dynfile->path);
     } else if (saveUnique) {
         snprintf(run->crashFileName, sizeof(run->crashFileName),
-            "%s/%s.PC.%" PRIx64 ".STACK.%" PRIx64 ".CODE.%d.ADDR.%" PRIx64 ".INSTR.%s.%s",
-            run->global->io.crashDir, util_sigName(si.si_signo), pc, run->backtrace, si.si_code,
-            crashAddr, instr, run->global->io.fileExtn);
+            "%s/%s.PC.%" PRIx64 ".CKPT.%" PRIx64 ".CODE.%d.%s",
+            run->global->io.crashDir, util_sigName(si.si_signo), pc, ckpt_addr, si.si_code, run->global->io.fileExtn);
     } else {
         char localtmstr[HF_STR_LEN];
         util_getLocalTime("%F.%H:%M:%S", localtmstr, sizeof(localtmstr), time(NULL));
         snprintf(run->crashFileName, sizeof(run->crashFileName),
-            "%s/%s.PC.%" PRIx64 ".STACK.%" PRIx64 ".CODE.%d.ADDR.%" PRIx64 ".INSTR.%s.%s.%d.%s",
-            run->global->io.crashDir, util_sigName(si.si_signo), pc, run->backtrace, si.si_code,
+            "%s/%s.PC.%" PRIx64 ".CKPT.%" PRIx64 ".CODE.%d.ADDR.%" PRIx64 ".INSTR.%s.%s.%d.%s",
+            run->global->io.crashDir, util_sigName(si.si_signo), pc, ckpt_addr, si.si_code,
             crashAddr, instr, localtmstr, pid, run->global->io.fileExtn);
     }
 
