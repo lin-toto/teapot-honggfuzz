@@ -236,7 +236,8 @@ static void fuzz_perfFeedback(run_t* run) {
             run->dynfile->size, util_timeNowUSecs() - run->timeStartedUSecs,
             run->hwCnts.cpuInstrCnt, run->hwCnts.cpuBranchCnt, run->hwCnts.newBBCnt, softNewEdge,
             softNewPC, softNewCmp, run->hwCnts.cpuInstrCnt, run->hwCnts.cpuBranchCnt,
-            run->hwCnts.bbCnt, softCurEdge, softCurPC, softCurCmp);
+            run->global->feedback.hwCnts.bbCnt, run->global->feedback.hwCnts.softCntEdge,
+            run->global->feedback.hwCnts.softCntPc, run->global->feedback.hwCnts.softCntCmp);
 
         if (run->global->io.statsFileName) {
             const time_t curr_sec      = time(NULL);
@@ -357,7 +358,7 @@ static bool fuzz_fetchInput(run_t* run) {
         fuzzState_t st = fuzz_getState(run->global);
         if (st == _HF_STATE_DYNAMIC_DRY_RUN) {
             run->mutationsPerRun = 0U;
-            if (input_prepareStaticFile(run, /* rewind= */ false, true)) {
+            if (input_prepareStaticFile(run, /* rewind= */ false, /* mangle= */ false)) {
                 return true;
             }
             fuzz_setDynamicMainState(run);
