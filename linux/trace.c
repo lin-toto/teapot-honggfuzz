@@ -128,11 +128,11 @@ struct user_regs_64 {
     uint64_t gs;
 };
 
-typedef struct NaHCO3_gadget_desc {
+typedef struct teapot_gadget_desc {
     uint64_t gadget_addr, access_addr, ckpt_addr;
 
     uint64_t gadget_type;
-} NaHCO3_gadget_desc_t;
+} teapot_gadget_desc_t;
 
 union user_regs_t {
     struct user_regs_32 regs32;
@@ -671,10 +671,10 @@ static void arch_traceSaveData(run_t* run, pid_t pid) {
         return;
     }
 
-    /* NaHCO3: induced signal for a gadget */
+    /* teapot: induced signal for a gadget */
     if (si.si_signo == SIGUSR1) {
         void *gadget_addr = si.si_value.sival_ptr;
-        NaHCO3_gadget_desc_t gadget;
+        teapot_gadget_desc_t gadget;
         if (arch_getProcMem(pid, (uint8_t*)&gadget, sizeof(gadget), (uint64_t)gadget_addr) == 0) {
             LOG_W("ptrace arch_getProcMem failed when reading gadget data");
         }
